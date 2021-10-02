@@ -1,0 +1,26 @@
+{
+    "name": "imagemin-avif-webpack-plugin",
+    "version": "0.0.1",
+    "description": "Webpack plugin which converts images to the avif format while also keeping the original files.",
+    "author": {
+        "name": "Jean-Philippe Bidegain",
+        "email": "jp@bidega.in",
+        "url": "https://jp.bidega.in"
+    },
+    "license": "MIT",
+    "main": "plugin.js",
+    "keywords": [
+        "webpack",
+        "plugin",
+        "avif",
+        "imagemin",
+        "images"
+    ],
+    "repository": "https://github.com/aeyoll/imagemin-avif-webpack-plugin.git",
+    "bugs": "https://github.com/aeyoll/imagemin-avif-webpack-plugin/issues",
+    "homepage": "https://github.com/aeyoll/imagemin-avif-webpack-plugin",
+    "dependencies": {
+        "imagemin": "^7.0.1",
+        "imagemin-avif": "^0.1.2"
+    }
+}
