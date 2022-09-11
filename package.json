@@ -20,7 +20,7 @@
     "bugs": "https://github.com/aeyoll/imagemin-avif-webpack-plugin/issues",
     "homepage": "https://github.com/aeyoll/imagemin-avif-webpack-plugin",
     "dependencies": {
-        "imagemin": "^7.0.1",
-        "imagemin-avif": "^0.1.2"
+        "imagemin": "^8.0.1",
+        "imagemin-avif": "^0.1.3"
     }
 }
