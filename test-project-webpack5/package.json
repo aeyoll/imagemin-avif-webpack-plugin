@@ -20,6 +20,6 @@
         "webpack-merge": "^5.8.0"
     },
     "dependencies": {
-        "imagemin-avif-webpack-plugin": "^0.0.1"
+        "imagemin-avif-webpack-plugin": "file:../imagemin-avif-webpack-plugin"
     }
 }
