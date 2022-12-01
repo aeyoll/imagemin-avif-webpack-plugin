@@ -70,6 +70,7 @@ Default:
     }
   }],
   overrideExtension: true,
+  keepOriginalFile: true,
   detailedLogs: false,
   silent: false,
   strict: true
@@ -95,6 +96,13 @@ Default: `true`
 By default the plugin will override the original file extension, so you will get: `image.png` -> `image.avif`
 
 In case you want to concat '.avif' at the end of the file name, set the config value to false. Ex: `image.png` -> `image.png.avif`. It may be useful when using nginx or similar to serve .avif files, if http-accept header contains avif just add a suffix to the requested image.
+
+#### keepOriginalFile
+
+Type: `boolean`<br>
+Default: `true`
+
+By default the original images will not deleted after converted to avif, unless you set it as false.
 
 #### detailedLogs
 

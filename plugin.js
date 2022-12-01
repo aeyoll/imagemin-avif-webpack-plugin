@@ -17,22 +17,26 @@ class ImageminAvifWebpackPlugin {
         overrideExtension = true,
         detailedLogs = false,
         strict = true,
-        silent = false
+        silent = false,
+        keepOriginalFile = true
     } = {}) {
         this.config = config;
         this.detailedLogs = detailedLogs;
         this.strict = strict;
         this.overrideExtension = overrideExtension;
         this.silent = silent;
+        this.keepOriginalFile = keepOriginalFile;
     }
 
     apply(compiler) {
+        const pluginName = this.constructor.name;
+        const renameMap = new Map();
         const onEmit = (compilation, cb) => {
             let assetNames = Object.keys(compilation.assets);
             let nrOfImagesFailed = 0;
 
             if (this.silent && this.detailedLogs) {
-                compilation.warnings.push(new Error(`ImageminAVifWebpackPlugin: both the 'silent' and 'detailedLogs' options are true. Overriding 'detailedLogs' and disabling all console output.`));
+                compilation.warnings.push(new Error(`${pluginName}: both the 'silent' and 'detailedLogs' options are true. Overriding 'detailedLogs' and disabling all console output.`));
             }
 
             Promise.all(
@@ -62,12 +66,16 @@ class ImageminAvifWebpackPlugin {
                                     if (this.detailedLogs && !this.silent) {
                                         console.log(GREEN, `${savedKB.toFixed(1)} KB saved from '${name}'`);
                                     }
-
-                                    emitAsset(outputName, buffer, compilation);
+                                    if (this.keepOriginalFile) {
+                                        emitAsset(outputName, buffer, compilation);
+                                    } else {
+                                        renameAsset(name, outputName, buffer, compilation);
+                                        renameMap.set(name, outputName);
+                                    }
                                     return savedKB;
                                 })
                                 .catch(err => {
-                                    let customErr = new Error(`ImageminAvifWebpackPlugin: "${name}" wasn't converted!`);
+                                    let customErr = new Error(`${pluginName}: "${name}" wasn't converted!`);
 
                                     nrOfImagesFailed++;
 
@@ -97,28 +105,45 @@ class ImageminAvifWebpackPlugin {
                         console.log(RED, `imagemin-avif-webpack-plugin: ${nrOfImagesFailed} images failed to convert to avif`);
                     }
                 }
-
-                cb();
+            }).then(() => {
+                if (renameMap.size) {
+                    const { sources: { RawSource } } = compiler.webpack;
+                    const list = assetNames.filter((assetName) => /\.(css|css.map|js|js.map)$/.test(assetName));
+                    const renameFiles = [...renameMap.keys()];
+                    list.forEach((assetName) => {
+                        const { source, info } = compilation.getAsset(assetName);
+                        const assetContent = source.source();
+                        let assetString = assetContent.toString('utf8');
+                        // console.group('replace png to avif on ' + assetName);
+                        assetString = assetString.replace(new RegExp(`(${renameFiles.join('|')})`, 'g'), (pngName) => {
+                            // console.log('|- pngName', pngName, '--->', renameMap.get(pngName));
+                            return renameMap.get(pngName);
+                        });
+                        compilation.updateAsset(assetName, new RawSource(assetString), info);
+                        // console.groupEnd();
+                    });
+                }
+                cb & cb();
             });
         };
 
-        hookPlugin(compiler, onEmit);
+        hookPlugin(compiler, onEmit, pluginName);
     }
 }
 
-function hookPlugin(compiler, onEmit) {
-    if (compiler.hooks && compiler.hooks.thisCompilation && compiler.hooks.processAssets) {
+function hookPlugin(compiler, onEmit, pluginName) {
+    if (compiler.hooks && compiler.hooks.thisCompilation/*  && compiler.hooks.processAssets */) {
         // webpack 5.x
-        compiler.hooks.thisCompilation.tap('ImageminAvifWebpackPlugin', compilation => {
+        compiler.hooks.thisCompilation.tap(pluginName, compilation => {
             compilation.hooks.processAssets.tapAsync({
-                name: 'ImageminAvifWebpackPlugin',
+                name: pluginName,
                 stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
             }, (assets, cb) => onEmit(compilation, cb));
-        })
+        });
     }
     else if (compiler.hooks) {
         // webpack 4.x
-        compiler.hooks.emit.tapAsync('ImageminAvifWebpackPlugin', onEmit);
+        compiler.hooks.emit.tapAsync(pluginName, onEmit);
     } else {
         // older versions
         compiler.plugin('emit', onEmit);
@@ -135,6 +160,23 @@ function emitAsset(name, buffer, compilation) {
     } else {
         // webpack 4.x & 3.x
         compilation.assets[outputName] = {
+            source: () => buffer,
+            size: () => buffer.length
+        };
+    }
+}
+
+function renameAsset(originalName, newName, buffer, compilation) {
+    if (compilation.renameAsset) {
+        // webpack 5.x
+        emitAsset(newName, buffer, compilation);
+        compilation.deleteAsset(originalName);
+        //compilation.renameAsset(originalName, newName);
+    } else {
+        // webpack 4.x & 3.x
+        // todo: I didn't test this block code on webpack4 and webpack3
+        delete compilation.assets[originalName];
+        compilation.assets[newName] = {
             source: () => buffer,
             size: () => buffer.length
         };
